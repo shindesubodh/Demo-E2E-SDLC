@@ -1,8 +1,8 @@
 name: Deploy to GitHub Pages
 
+# Deploys only when the SDLC Orchestrator's Phase 7 Deploy decision triggers it (or someone runs it by hand).
+# Merging to main no longer deploys: Gate 5 merges, Phase 7 deploys.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

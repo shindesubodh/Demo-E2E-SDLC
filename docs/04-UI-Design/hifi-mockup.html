@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Times Table Generator – Hi-Fi mockup</title>
+<style>
+:root{
+--color-bg:#F4F7FB;--color-surface:#FFFFFF;--color-text:#1A2433;--color-muted:#4A5568;--color-primary:#1F5FBF;--color-primary-hover:#174A96;--color-on-primary:#FFFFFF;--color-border:#8A96A8;--color-row-alt:#EEF3FA;--color-error:#B3261E;--color-error-bg:#FDECEA;--color-focus:#B35C00;
+--font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--font-size-sm:16px;--font-size-md:18px;--font-size-lg:20px;--font-size-xl:28px;
+--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;--radius:10px;--focus-ring:3px solid var(--color-focus);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font-family);font-size:var(--font-size-md);color:var(--color-text);background:var(--color-bg);line-height:1.5}
+.mockbar{background:#222;color:#fff;padding:6px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}
+.mockbar strong{margin-right:6px}
+.mockbar button{background:#444;color:#fff;border:1px solid #777;border-radius:4px;padding:4px 8px;font-size:14px;cursor:pointer}
+.mockbar button[aria-pressed="true"]{background:#fff;color:#222}
+.mockbar button:focus-visible{outline:3px solid #FFC94D;outline-offset:2px}
+.app{max-width:560px;margin:0 auto;padding:var(--space-5) var(--space-4)}
+.app-title{font-size:var(--font-size-xl);margin:0 0 var(--space-5);text-align:center}
+.card{background:var(--color-surface);border-radius:var(--radius);padding:var(--space-5);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.number-label{display:block;font-weight:600;margin-bottom:var(--space-2)}
+.form-row{display:flex;gap:var(--space-3);flex-wrap:wrap}
+.number-input{flex:1 1 140px;min-width:0;font:inherit;font-size:var(--font-size-lg);padding:var(--space-3);border:2px solid var(--color-border);border-radius:var(--radius);color:var(--color-text);background:#fff}
+.number-input[aria-invalid="true"]{border-color:var(--color-error)}
+.generate-button{font:inherit;font-size:var(--font-size-lg);font-weight:700;padding:var(--space-3) var(--space-5);border:0;border-radius:var(--radius);background:var(--color-primary);color:var(--color-on-primary);cursor:pointer}
+.generate-button:hover{background:var(--color-primary-hover)}
+.number-input:focus-visible,.generate-button:focus-visible,.forced-focus{outline:var(--focus-ring);outline-offset:2px}
+.error-region{min-height:0;margin-top:var(--space-4)}
+.error-message{margin:0;padding:var(--space-3);background:var(--color-error-bg);color:var(--color-error);border-left:4px solid var(--color-error);border-radius:6px;font-weight:600;display:flex;gap:var(--space-2);align-items:flex-start}
+.table-list{list-style:none;margin:var(--space-5) 0 0;padding:0;border-radius:var(--radius);overflow:hidden;border:1px solid #D5DCE6}
+.table-row{padding:var(--space-2) var(--space-4);font-size:var(--font-size-lg);font-variant-numeric:tabular-nums}
+.table-row:nth-child(even){background:var(--color-row-alt)}
+.phone{max-width:360px;border:8px solid #333;border-radius:24px;margin:var(--space-4) auto;background:var(--color-bg);overflow:hidden}
+.notes{max-width:900px;margin:0 auto;padding:var(--space-5) var(--space-4)}
+.notes h2{margin-top:var(--space-6)}
+.notes table{border-collapse:collapse;width:100%;font-size:16px;background:#fff}
+.notes th,.notes td{border:1px solid #C5CDD8;padding:6px 8px;text-align:left;vertical-align:top}
+.sw{display:inline-block;width:28px;height:28px;border-radius:6px;border:1px solid #888;vertical-align:middle}
+code{font-size:15px}
+.vlabel{font-size:14px;color:var(--color-muted);text-align:center;margin:var(--space-2) 0 0}
+@media (max-width:400px){.app{padding:var(--space-4) var(--space-3)}.card{padding:var(--space-4)}.generate-button{flex:1 1 100%}}
+</style>
+</head>
+<body>
+<nav class="mockbar" aria-label="Mockup screens">
+<strong>Mockup:</strong>
+<button type="button" data-view="empty">1 Empty (start)</button>
+<button type="button" data-view="filled">2 Table for 7</button>
+<button type="button" data-view="replaced">3 Replaced: 9</button>
+<button type="button" data-view="error">4 Error</button>
+<button type="button" data-view="focus">5 Keyboard focus</button>
+<button type="button" data-view="phone">6 Phone 360px, 100</button>
+<button type="button" data-view="notes">Design notes</button>
+</nav>
+<main id="view"></main>
+<script>
+var ERROR_MESSAGE=`Please enter a whole number from 1 to 100.`;
+function parseTableNumber(text){var t=String(text==null?``:text).trim();if(!/^[0-9]+$/.test(t)){return {ok:false,error:ERROR_MESSAGE};}var n=parseInt(t,10);if(n<1||n>100){return {ok:false,error:ERROR_MESSAGE};}return {ok:true,value:n};}
+function formatRow(n,m){return n+` \u00D7 `+m+` = `+(n*m);}
+function buildTable(n){var r=[];for(var m=1;m<=10;m++){r.push({multiplier:m,product:n*m,text:formatRow(n,m)});}return r;}
+function esc(s){return String(s).replace(/&/g,`&amp;`).replace(/</g,`&lt;`).replace(/"/g,`&quot;`);}
+var state={inputValue:``,rows:[],error:``,focus:false};
+function appHtml(){
+var err=state.error?`<p class="error-message"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="9" fill="#B3261E"/><rect x="9" y="4.5" width="2" height="7" fill="#fff"/><rect x="9" y="13" width="2" height="2" fill="#fff"/></svg><span>${esc(state.error)}</span></p>`:``;
+var rows=state.rows.length?`<ol class="table-list" aria-label="Times table">${state.rows.map(function(r){return `<li class="table-row">${esc(r.text)}</li>`;}).join(``)}</ol>`:``;
+return `<div class="app"><h1 class="app-title">Times Table Generator</h1><div class="card"><form class="number-form" id="f" novalidate><label class="number-label" for="number-input">Enter a number from 1 to 100</label><div class="form-row"><input class="number-input${state.focus?` forced-focus`:``}" id="number-input" type="text" inputmode="numeric" autocomplete="off" value="${esc(state.inputValue)}" aria-invalid="${state.error?`true`:`false`}" aria-describedby="error-region"><button class="generate-button" type="submit">Generate</button></div><div class="error-region" id="error-region" role="alert">${err}</div></form>${rows}</div></div>`;}
+function notesHtml(){
+var pal=[[`--color-bg`,`#F4F7FB`,`Page background`],[`--color-surface`,`#FFFFFF`,`Card, input background`],[`--color-text`,`#1A2433`,`Title, label, input text, rows (15.6:1 on white)`],[`--color-muted`,`#4A5568`,`Secondary text, e.g. mockup view captions (7.5:1 on white); not used in the app screen`],[`--color-primary`,`#1F5FBF`,`Generate button background (6.0:1 with white text)`],[`--color-primary-hover`,`#174A96`,`Button hover`],[`--color-border`,`#8A96A8`,`Input border (3.0:1, non-text)`],[`--color-row-alt`,`#EEF3FA`,`Even table rows (text 14:1)`],[`--color-error`,`#B3261E`,`Error text and border (5.8:1 on error bg)`],[`--color-error-bg`,`#FDECEA`,`Error message background`],[`--color-focus`,`#B35C00`,`3 px focus outline (4.3:1 on bg)`]];
+var sw=pal.map(function(p){return `<tr><td><span class="sw" style="background:${p[1]}"></span></td><td><code>${p[0]}</code></td><td>${p[1]}</td><td>${p[2]}</td></tr>`;}).join(``);
+return `<div class="notes"><h1>Design notes</h1><p>Hand-off for <code>src/App.css</code> and <code>src/App.jsx</code>. Copy the tokens below onto <code>:root</code>. One screen only; no extra content (BR-05).</p>
+<h2>Colour palette</h2><table><tr><th>Swatch</th><th>Token</th><th>Hex</th><th>Used for</th></tr>${sw}</table>
+<h2>Typography</h2><table><tr><th>Token</th><th>Value</th><th>Use</th></tr><tr><td><code>--font-family</code></td><td>system-ui stack</td><td>All text; no web fonts</td></tr><tr><td><code>--font-size-sm</code></td><td>16px</td><td>Minimum size, notes</td></tr><tr><td><code>--font-size-md</code></td><td>18px</td><td>Body, label, error</td></tr><tr><td><code>--font-size-lg</code></td><td>20px</td><td>Input, button, table rows (tabular numbers)</td></tr><tr><td><code>--font-size-xl</code></td><td>28px</td><td>App title</td></tr></table>
+<h2>Spacing and shape</h2><p><code>--space-1</code> 4 · <code>--space-2</code> 8 · <code>--space-3</code> 12 · <code>--space-4</code> 16 · <code>--space-5</code> 24 · <code>--space-6</code> 32 px. <code>--radius</code> 10px. <code>--focus-ring</code> 3px solid #B35C00, offset 2px, on <code>:focus-visible</code>; never <code>outline:none</code>.</p>
+<h2>Components (names match the SDD)</h2><table><tr><th>Element / class</th><th>Style</th></tr><tr><td><code>App</code> (.app)</td><td>Centred column, max 560px, padding 24/16px</td></tr><tr><td><code>.app-title</code> h1</td><td>28px bold, centred</td></tr><tr><td>form <code>.number-form</code> (noValidate)</td><td>Submit on Enter or Generate</td></tr><tr><td><code>label.number-label</code> for <code>#number-input</code></td><td>Visible text "Enter a number from 1 to 100", 600 weight</td></tr><tr><td><code>input#number-input</code> type=text inputMode=numeric</td><td>2px border, 20px text; aria-invalid=true sets red border</td></tr><tr><td><code>button.generate-button</code> type=submit</td><td>Primary blue, white bold text; full width below 400px</td></tr><tr><td><code>div.error-region</code> role=alert</td><td>Always rendered; holds <code>.error-message</code> with icon and <code>ERROR_MESSAGE</code></td></tr><tr><td><code>ol.table-list</code> / <code>li.table-row</code></td><td>10 rows, key = multiplier, zebra stripes, text from <code>formatRow</code>; not rendered when rows is empty</td></tr></table>
+<h2>States</h2><p>Empty: title, label, input, Generate button and an empty error region only; no hint text and no rows (US-06). Valid: 10 rows, error region empty. New valid entry: rows replaced. Invalid: error shown, rows cleared, typed text kept.</p></div>`;}
+function submit(e){e.preventDefault();var inp=document.getElementById(`number-input`);state.inputValue=inp.value;state.focus=false;var r=parseTableNumber(state.inputValue);if(r.ok){state.rows=buildTable(r.value);state.error=``;}else{state.rows=[];state.error=ERROR_MESSAGE;}renderApp(current);var i2=document.getElementById(`number-input`);if(i2){i2.focus();}}
+var current=`empty`;
+function renderApp(v){var view=document.getElementById(`view`);var h=appHtml();if(v===`phone`){h=`<div class="phone">${h}</div><p class="vlabel">Simulated 360 px phone: table for 100, no horizontal scroll</p>`;}view.innerHTML=h;document.getElementById(`f`).addEventListener(`submit`,submit);}
+function show(v){current=v;var bs=document.querySelectorAll(`.mockbar button`);for(var i=0;i<bs.length;i++){bs[i].setAttribute(`aria-pressed`,bs[i].getAttribute(`data-view`)===v?`true`:`false`);}
+state={inputValue:``,rows:[],error:``,focus:false};
+if(v===`notes`){document.getElementById(`view`).innerHTML=notesHtml();return;}
+if(v===`filled`){state.inputValue=`7`;state.rows=buildTable(7);}
+if(v===`replaced`){state.inputValue=`9`;state.rows=buildTable(9);}
+if(v===`error`){state.inputValue=`2.5`;state.error=ERROR_MESSAGE;}
+if(v===`focus`){state.inputValue=`12`;state.focus=true;}
+if(v===`phone`){state.inputValue=`100`;state.rows=buildTable(100);}
+renderApp(v);}
+var mb=document.querySelectorAll(`.mockbar button`);for(var k=0;k<mb.length;k++){mb[k].addEventListener(`click`,function(){show(this.getAttribute(`data-view`));});}
+show(`empty`);
+</script>
+</body>
+</html>

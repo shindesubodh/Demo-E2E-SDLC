@@ -7,5 +7,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
+    // List every test by name in the CI log (S7).
+    reporters: ["verbose"],
   },
 });
